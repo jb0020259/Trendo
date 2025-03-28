@@ -76,25 +76,35 @@ def search_and_download(keyword):
             logger.info("No cookie consent popup found or already accepted")
         
         # Wait for and find the search box
-        logger.info("Looking for search box...")
-        search_box = wait.until(EC.presence_of_element_located((By.XPATH, "//span[contains(text(), 'Explore')]")))
-        highlight_element(driver, search_box)
-        logger.info("Search box found and highlighted")
-        
-        search_box.click()
-        logger.info("Clicked on search box")
-        time.sleep(2)  # Wait for the search input to appear
-        
-        # Now find and interact with the actual search input
-        search_input = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "input[type='text']")))
-        highlight_element(driver, search_input)
-        logger.info("Search input field found and highlighted")
-        
-        search_input.clear()
-        search_input.send_keys(keyword)
-        logger.info(f"Entered search term: {keyword}")
-        search_input.send_keys(Keys.RETURN)
-        logger.info("Search submitted")
+        logger.info("Looking for Explore button...")
+        try:
+            # Find and click the Explore button
+            explore_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(., 'Explore')]")))
+            highlight_element(driver, explore_button)
+            logger.info("Explore button found and highlighted")
+            
+            # Click the button to navigate to search page
+            actions.move_to_element(explore_button).click().perform()
+            logger.info("Clicked Explore button")
+            time.sleep(3)  # Wait for navigation
+            
+            # Now find and interact with the search input on the new page
+            logger.info("Looking for search input on new page...")
+            search_input = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "input[type='text']")))
+            highlight_element(driver, search_input)
+            logger.info("Search input field found and highlighted")
+            
+            # Clear and enter search term
+            search_input.clear()
+            search_input.send_keys(keyword)
+            logger.info(f"Entered search term: {keyword}")
+            search_input.send_keys(Keys.RETURN)
+            logger.info("Search submitted")
+            
+        except Exception as e:
+            logger.error(f"Error during search interaction: {str(e)}")
+            logger.error("Stack trace:", exc_info=True)
+            raise
 
         # Wait for results to load
         logger.info("Waiting for search results to load...")
