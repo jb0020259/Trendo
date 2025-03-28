@@ -11,7 +11,7 @@
             padding: 20px;
         }
         .container {
-            max-width: 1400px; /* Increased container width */
+            max-width: 1400px;
             margin: 0 auto;
         }
         .trend-card {
@@ -35,6 +35,12 @@
         .trend-widget {
             min-height: 400px;
             width: 100%;
+            position: relative;
+        }
+        .trend-widget iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
         }
         .page-title {
             color: #202124;
@@ -45,12 +51,16 @@
             text-align: center;
             padding: 20px;
             color: #666;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
         }
         .row {
-            margin: 0 -15px; /* Negative margin to counteract padding */
+            margin: 0 -15px;
         }
         .col-md-6 {
-            padding: 15px; /* Even padding around columns */
+            padding: 15px;
         }
         @media (max-width: 768px) {
             .container {
@@ -65,7 +75,7 @@
 <body>
     <div class="container">
         <h1 class="page-title">Trend Analysis Dashboard</h1>
-        <div class="row g-4"> <!-- Added g-4 class for better gap control -->
+        <div class="row g-4">
             <!-- Gold Trends -->
             <div class="col-md-6">
                 <div class="trend-card">
@@ -111,52 +121,67 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script type="text/javascript" src="https://ssl.gstatic.com/trends_nrtr/4031_RC01/embed_loader.js"></script>
     <script type="text/javascript">
-        // Wait for the trends script to load
-        window.addEventListener('load', function() {
-            setTimeout(function() { // Added delay to ensure trends object is loaded
-                // Ensure the trends object is available
-                if (typeof trends !== 'undefined') {
-                    // Gold trends
-                    trends.embed.renderExploreWidget("TIMESERIES", {
-                        "comparisonItem":[{"keyword":"buy gold","geo":"IN","time":"2004-01-01 2024-03-28"}],
-                        "category":0,
-                        "property":""
-                    }, {
-                        "exploreQuery":"date=2004-01-01%202024-03-28&geo=IN&q=buy%20gold",
-                        "guestPath":"https://trends.google.com:443/trends/embed/"
-                    }, document.getElementById('gold-widget'));
+        function initializeTrendWidgets() {
+            if (typeof trends === 'undefined') {
+                console.error('Google Trends not loaded yet');
+                setTimeout(initializeTrendWidgets, 1000);
+                return;
+            }
 
-                    // Bitcoin trends
-                    trends.embed.renderExploreWidget("TIMESERIES", {
-                        "comparisonItem":[{"keyword":"bitcoin investment","geo":"IN","time":"2004-01-01 2024-03-28"}],
-                        "category":0,
-                        "property":""
-                    }, {
-                        "exploreQuery":"date=2004-01-01%202024-03-28&geo=IN&q=bitcoin%20investment",
-                        "guestPath":"https://trends.google.com:443/trends/embed/"
-                    }, document.getElementById('bitcoin-widget'));
-
-                    // Stock market trends
-                    trends.embed.renderExploreWidget("TIMESERIES", {
-                        "comparisonItem":[{"keyword":"stock market investment","geo":"IN","time":"2004-01-01 2024-03-28"}],
-                        "category":0,
-                        "property":""
-                    }, {
-                        "exploreQuery":"date=2004-01-01%202024-03-28&geo=IN&q=stock%20market%20investment",
-                        "guestPath":"https://trends.google.com:443/trends/embed/"
-                    }, document.getElementById('stock-widget'));
-
-                    // Real estate trends
-                    trends.embed.renderExploreWidget("TIMESERIES", {
-                        "comparisonItem":[{"keyword":"real estate investment","geo":"IN","time":"2004-01-01 2024-03-28"}],
-                        "category":0,
-                        "property":""
-                    }, {
-                        "exploreQuery":"date=2004-01-01%202024-03-28&geo=IN&q=real%20estate%20investment",
-                        "guestPath":"https://trends.google.com:443/trends/embed/"
-                    }, document.getElementById('real-estate-widget'));
+            const widgets = [
+                {
+                    id: 'gold-widget',
+                    keyword: 'buy gold',
+                    title: 'Gold Investment Trends'
+                },
+                {
+                    id: 'bitcoin-widget',
+                    keyword: 'bitcoin investment',
+                    title: 'Bitcoin Investment Trends'
+                },
+                {
+                    id: 'stock-widget',
+                    keyword: 'stock market investment',
+                    title: 'Stock Market Investment Trends'
+                },
+                {
+                    id: 'real-estate-widget',
+                    keyword: 'real estate investment',
+                    title: 'Real Estate Investment Trends'
                 }
-            }, 1000); // 1 second delay
+            ];
+
+            widgets.forEach((widget, index) => {
+                setTimeout(() => {
+                    try {
+                        trends.embed.renderExploreWidget("TIMESERIES", {
+                            "comparisonItem": [{
+                                "keyword": widget.keyword,
+                                "geo": "IN",
+                                "time": "2004-01-01 2024-03-28"
+                            }],
+                            "category": 0,
+                            "property": ""
+                        }, {
+                            "exploreQuery": `date=2004-01-01%202024-03-28&geo=IN&q=${encodeURIComponent(widget.keyword)}`,
+                            "guestPath": "https://trends.google.com:443/trends/embed/"
+                        }, document.getElementById(widget.id));
+                    } catch (error) {
+                        console.error(`Error loading widget ${widget.title}:`, error);
+                        document.getElementById(widget.id).innerHTML = `<div class="loading">Error loading ${widget.title}. Please refresh the page.</div>`;
+                    }
+                }, index * 1000); // Stagger widget loading by 1 second each
+            });
+        }
+
+        // Initial delay before starting widget initialization
+        setTimeout(initializeTrendWidgets, 2000);
+
+        // Retry initialization if page loses focus and regains it
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+                initializeTrendWidgets();
+            }
         });
     </script>
 </body>
