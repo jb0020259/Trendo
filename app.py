@@ -89,15 +89,15 @@ def search_and_download(keyword):
             time.sleep(3)  # Wait for navigation
             
             # Now find and interact with the search input on the new page
-            logger.info("Looking for search input on new page...")
-            search_input = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "input[type='text']")))
+            logger.info("Looking for search input with label 'Add a search term'...")
+            search_input = wait.until(EC.presence_of_element_located((By.XPATH, "//input[@aria-label='Add a search term']")))
             highlight_element(driver, search_input)
             logger.info("Search input field found and highlighted")
             
             # Clear and enter search term
             search_input.clear()
-            search_input.send_keys(keyword)
-            logger.info(f"Entered search term: {keyword}")
+            search_input.send_keys("gold price")
+            logger.info("Entered search term: gold price")
             search_input.send_keys(Keys.RETURN)
             logger.info("Search submitted")
             
