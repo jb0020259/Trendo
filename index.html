@@ -10,6 +10,10 @@
             background-color: #f8f9fa;
             padding: 20px;
         }
+        .container {
+            max-width: 1400px; /* Increased container width */
+            margin: 0 auto;
+        }
         .trend-card {
             background: white;
             border-radius: 10px;
@@ -17,6 +21,7 @@
             margin-bottom: 20px;
             padding: 15px;
             transition: transform 0.2s;
+            height: 100%;
         }
         .trend-card:hover {
             transform: translateY(-5px);
@@ -41,12 +46,26 @@
             padding: 20px;
             color: #666;
         }
+        .row {
+            margin: 0 -15px; /* Negative margin to counteract padding */
+        }
+        .col-md-6 {
+            padding: 15px; /* Even padding around columns */
+        }
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 10px;
+            }
+            .trend-card {
+                margin-bottom: 15px;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1 class="page-title">Trend Analysis Dashboard</h1>
-        <div class="row">
+        <div class="row g-4"> <!-- Added g-4 class for better gap control -->
             <!-- Gold Trends -->
             <div class="col-md-6">
                 <div class="trend-card">
@@ -94,48 +113,50 @@
     <script type="text/javascript">
         // Wait for the trends script to load
         window.addEventListener('load', function() {
-            // Ensure the trends object is available
-            if (typeof trends !== 'undefined') {
-                // Gold trends
-                trends.embed.renderExploreWidget("TIMESERIES", {
-                    "comparisonItem":[{"keyword":"buy gold","geo":"IN","time":"today 5-y"}],
-                    "category":0,
-                    "property":""
-                }, {
-                    "exploreQuery":"geo=IN&q=buy%20gold&date=today%205-y",
-                    "guestPath":"https://trends.google.com:443/trends/embed/"
-                }, document.getElementById('gold-widget'));
+            setTimeout(function() { // Added delay to ensure trends object is loaded
+                // Ensure the trends object is available
+                if (typeof trends !== 'undefined') {
+                    // Gold trends
+                    trends.embed.renderExploreWidget("TIMESERIES", {
+                        "comparisonItem":[{"keyword":"buy gold","geo":"IN","time":"2004-01-01 2024-03-28"}],
+                        "category":0,
+                        "property":""
+                    }, {
+                        "exploreQuery":"date=2004-01-01%202024-03-28&geo=IN&q=buy%20gold",
+                        "guestPath":"https://trends.google.com:443/trends/embed/"
+                    }, document.getElementById('gold-widget'));
 
-                // Bitcoin trends
-                trends.embed.renderExploreWidget("TIMESERIES", {
-                    "comparisonItem":[{"keyword":"bitcoin investment","geo":"IN","time":"today 5-y"}],
-                    "category":0,
-                    "property":""
-                }, {
-                    "exploreQuery":"geo=IN&q=bitcoin%20investment&date=today%205-y",
-                    "guestPath":"https://trends.google.com:443/trends/embed/"
-                }, document.getElementById('bitcoin-widget'));
+                    // Bitcoin trends
+                    trends.embed.renderExploreWidget("TIMESERIES", {
+                        "comparisonItem":[{"keyword":"bitcoin investment","geo":"IN","time":"2004-01-01 2024-03-28"}],
+                        "category":0,
+                        "property":""
+                    }, {
+                        "exploreQuery":"date=2004-01-01%202024-03-28&geo=IN&q=bitcoin%20investment",
+                        "guestPath":"https://trends.google.com:443/trends/embed/"
+                    }, document.getElementById('bitcoin-widget'));
 
-                // Stock market trends
-                trends.embed.renderExploreWidget("TIMESERIES", {
-                    "comparisonItem":[{"keyword":"stock market investment","geo":"IN","time":"today 5-y"}],
-                    "category":0,
-                    "property":""
-                }, {
-                    "exploreQuery":"geo=IN&q=stock%20market%20investment&date=today%205-y",
-                    "guestPath":"https://trends.google.com:443/trends/embed/"
-                }, document.getElementById('stock-widget'));
+                    // Stock market trends
+                    trends.embed.renderExploreWidget("TIMESERIES", {
+                        "comparisonItem":[{"keyword":"stock market investment","geo":"IN","time":"2004-01-01 2024-03-28"}],
+                        "category":0,
+                        "property":""
+                    }, {
+                        "exploreQuery":"date=2004-01-01%202024-03-28&geo=IN&q=stock%20market%20investment",
+                        "guestPath":"https://trends.google.com:443/trends/embed/"
+                    }, document.getElementById('stock-widget'));
 
-                // Real estate trends
-                trends.embed.renderExploreWidget("TIMESERIES", {
-                    "comparisonItem":[{"keyword":"real estate investment","geo":"IN","time":"today 5-y"}],
-                    "category":0,
-                    "property":""
-                }, {
-                    "exploreQuery":"geo=IN&q=real%20estate%20investment&date=today%205-y",
-                    "guestPath":"https://trends.google.com:443/trends/embed/"
-                }, document.getElementById('real-estate-widget'));
-            }
+                    // Real estate trends
+                    trends.embed.renderExploreWidget("TIMESERIES", {
+                        "comparisonItem":[{"keyword":"real estate investment","geo":"IN","time":"2004-01-01 2024-03-28"}],
+                        "category":0,
+                        "property":""
+                    }, {
+                        "exploreQuery":"date=2004-01-01%202024-03-28&geo=IN&q=real%20estate%20investment",
+                        "guestPath":"https://trends.google.com:443/trends/embed/"
+                    }, document.getElementById('real-estate-widget'));
+                }
+            }, 1000); // 1 second delay
         });
     </script>
 </body>
