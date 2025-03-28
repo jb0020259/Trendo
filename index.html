@@ -22,6 +22,7 @@
             padding: 15px;
             transition: transform 0.2s;
             height: 100%;
+            overflow: hidden;
         }
         .trend-card:hover {
             transform: translateY(-5px);
@@ -33,14 +34,20 @@
             font-weight: 600;
         }
         .trend-widget {
-            min-height: 400px;
+            height: 400px;
             width: 100%;
             position: relative;
+            overflow: hidden;
         }
         .trend-widget iframe {
-            width: 100%;
-            height: 100%;
+            width: 100% !important;
+            height: 100% !important;
             border: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
         }
         .page-title {
             color: #202124;
@@ -57,9 +64,13 @@
             transform: translate(-50%, -50%);
         }
         .row {
+            display: flex;
+            flex-wrap: wrap;
             margin: 0 -15px;
         }
         .col-md-6 {
+            flex: 0 0 50%;
+            max-width: 50%;
             padding: 15px;
         }
         @media (max-width: 768px) {
@@ -69,13 +80,17 @@
             .trend-card {
                 margin-bottom: 15px;
             }
+            .col-md-6 {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1 class="page-title">Trend Analysis Dashboard</h1>
-        <div class="row g-4">
+        <div class="row">
             <!-- Gold Trends -->
             <div class="col-md-6">
                 <div class="trend-card">
@@ -182,6 +197,22 @@
             if (!document.hidden) {
                 initializeTrendWidgets();
             }
+        });
+
+        // Add resize observer to maintain layout
+        const resizeObserver = new ResizeObserver(entries => {
+            entries.forEach(entry => {
+                const iframe = entry.target.querySelector('iframe');
+                if (iframe) {
+                    iframe.style.width = '100%';
+                    iframe.style.height = '100%';
+                }
+            });
+        });
+
+        // Observe all widget containers
+        document.querySelectorAll('.trend-widget').forEach(widget => {
+            resizeObserver.observe(widget);
         });
     </script>
 </body>
