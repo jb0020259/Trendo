@@ -13,16 +13,16 @@
         .container {
             max-width: 1400px;
             margin: 0 auto;
+            padding: 0 15px;
         }
         .trend-card {
             background: white;
             border-radius: 10px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
+            margin-bottom: 30px;
             padding: 15px;
             transition: transform 0.2s;
-            height: 100%;
-            overflow: hidden;
+            height: 500px;
         }
         .trend-card:hover {
             transform: translateY(-5px);
@@ -34,20 +34,18 @@
             font-weight: 600;
         }
         .trend-widget {
-            height: 400px;
             width: 100%;
+            height: calc(100% - 50px);
             position: relative;
-            overflow: hidden;
+        }
+        .trend-widget > div {
+            width: 100% !important;
+            height: 100% !important;
         }
         .trend-widget iframe {
             width: 100% !important;
             height: 100% !important;
-            border: none;
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            border: none !important;
         }
         .page-title {
             color: #202124;
@@ -63,26 +61,18 @@
             left: 50%;
             transform: translate(-50%, -50%);
         }
-        .row {
-            display: flex;
-            flex-wrap: wrap;
-            margin: 0 -15px;
-        }
-        .col-md-6 {
-            flex: 0 0 50%;
-            max-width: 50%;
-            padding: 15px;
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+            margin: 0 auto;
         }
         @media (max-width: 768px) {
-            .container {
-                padding: 0 10px;
+            .grid-container {
+                grid-template-columns: 1fr;
             }
             .trend-card {
-                margin-bottom: 15px;
-            }
-            .col-md-6 {
-                flex: 0 0 100%;
-                max-width: 100%;
+                height: 400px;
             }
         }
     </style>
@@ -90,44 +80,36 @@
 <body>
     <div class="container">
         <h1 class="page-title">Trend Analysis Dashboard</h1>
-        <div class="row">
+        <div class="grid-container">
             <!-- Gold Trends -->
-            <div class="col-md-6">
-                <div class="trend-card">
-                    <h3 class="trend-title">Gold Investment Trends</h3>
-                    <div id="gold-widget" class="trend-widget">
-                        <div class="loading">Loading trend data...</div>
-                    </div>
+            <div class="trend-card">
+                <h3 class="trend-title">Gold Investment Trends</h3>
+                <div id="gold-widget" class="trend-widget">
+                    <div class="loading">Loading trend data...</div>
                 </div>
             </div>
 
             <!-- Bitcoin Trends -->
-            <div class="col-md-6">
-                <div class="trend-card">
-                    <h3 class="trend-title">Bitcoin Investment Trends</h3>
-                    <div id="bitcoin-widget" class="trend-widget">
-                        <div class="loading">Loading trend data...</div>
-                    </div>
+            <div class="trend-card">
+                <h3 class="trend-title">Bitcoin Investment Trends</h3>
+                <div id="bitcoin-widget" class="trend-widget">
+                    <div class="loading">Loading trend data...</div>
                 </div>
             </div>
 
             <!-- Stock Market Trends -->
-            <div class="col-md-6">
-                <div class="trend-card">
-                    <h3 class="trend-title">Stock Market Investment Trends</h3>
-                    <div id="stock-widget" class="trend-widget">
-                        <div class="loading">Loading trend data...</div>
-                    </div>
+            <div class="trend-card">
+                <h3 class="trend-title">Stock Market Investment Trends</h3>
+                <div id="stock-widget" class="trend-widget">
+                    <div class="loading">Loading trend data...</div>
                 </div>
             </div>
 
             <!-- Real Estate Trends -->
-            <div class="col-md-6">
-                <div class="trend-card">
-                    <h3 class="trend-title">Real Estate Investment Trends</h3>
-                    <div id="real-estate-widget" class="trend-widget">
-                        <div class="loading">Loading trend data...</div>
-                    </div>
+            <div class="trend-card">
+                <h3 class="trend-title">Real Estate Investment Trends</h3>
+                <div id="real-estate-widget" class="trend-widget">
+                    <div class="loading">Loading trend data...</div>
                 </div>
             </div>
         </div>
@@ -181,11 +163,27 @@
                             "exploreQuery": `date=2004-01-01%202024-03-28&geo=IN&q=${encodeURIComponent(widget.keyword)}`,
                             "guestPath": "https://trends.google.com:443/trends/embed/"
                         }, document.getElementById(widget.id));
+
+                        // Add mutation observer to force iframe size
+                        const observer = new MutationObserver((mutations, obs) => {
+                            const iframe = document.getElementById(widget.id).querySelector('iframe');
+                            if (iframe) {
+                                iframe.style.width = '100%';
+                                iframe.style.height = '100%';
+                                obs.disconnect();
+                            }
+                        });
+
+                        observer.observe(document.getElementById(widget.id), {
+                            childList: true,
+                            subtree: true
+                        });
+
                     } catch (error) {
                         console.error(`Error loading widget ${widget.title}:`, error);
                         document.getElementById(widget.id).innerHTML = `<div class="loading">Error loading ${widget.title}. Please refresh the page.</div>`;
                     }
-                }, index * 1000); // Stagger widget loading by 1 second each
+                }, index * 1000);
             });
         }
 
@@ -197,22 +195,6 @@
             if (!document.hidden) {
                 initializeTrendWidgets();
             }
-        });
-
-        // Add resize observer to maintain layout
-        const resizeObserver = new ResizeObserver(entries => {
-            entries.forEach(entry => {
-                const iframe = entry.target.querySelector('iframe');
-                if (iframe) {
-                    iframe.style.width = '100%';
-                    iframe.style.height = '100%';
-                }
-            });
-        });
-
-        // Observe all widget containers
-        document.querySelectorAll('.trend-widget').forEach(widget => {
-            resizeObserver.observe(widget);
         });
     </script>
 </body>
