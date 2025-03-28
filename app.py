@@ -1,60 +1,269 @@
-from flask import Flask, render_template, jsonify
-from pytrends.request import TrendReq
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.action_chains import ActionChains
+from webdriver_manager.chrome import ChromeDriverManager
+import time
+import os
 import pandas as pd
-from datetime import datetime, timedelta
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-import json
+import logging
 
-app = Flask(__name__)
+# ---------- CONFIG ----------
+KEYWORD = "cybersecurity"
+DOWNLOAD_DIR = os.getcwd()
 
-# Initialize pytrends
-pytrends = TrendReq(hl='en-US', tz=330)  # 330 is the timezone offset for India (UTC+5:30)
+# Set up logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger(__name__)
+# ----------------------------
 
-def get_trend_data(keyword, timeframe='2004-01-01 2024-03-28'):
+def highlight_element(driver, element, duration=1):
+    """Highlight an element with a red border"""
     try:
-        # Build payload
-        pytrends.build_payload([keyword], timeframe=timeframe, geo='IN')
-        
-        # Get interest over time
-        interest_over_time_df = pytrends.interest_over_time()
-        
-        if interest_over_time_df.empty:
-            return None
-            
-        # Convert to list for JSON serialization
-        dates = interest_over_time_df.index.strftime('%Y-%m-%d').tolist()
-        values = interest_over_time_df[keyword].tolist()
-        
-        return {
-            'dates': dates,
-            'values': values,
-            'keyword': keyword
-        }
+        original_style = element.get_attribute('style')
+        driver.execute_script("""
+            arguments[0].style.border='3px solid red';
+            arguments[0].style.backgroundColor='yellow';
+        """, element)
+        time.sleep(duration)
+        driver.execute_script(f"arguments[0].style='{original_style}'", element)
     except Exception as e:
-        print(f"Error fetching data for {keyword}: {str(e)}")
-        return None
+        logger.error(f"Error highlighting element: {str(e)}")
 
-@app.route('/')
-def index():
-    return render_template('index.html')
+def setup_browser():
+    logger.info("Setting up Chrome browser...")
+    chrome_options = Options()
+    # chrome_options.add_argument("--headless=new")  # Commented out to show browser
+    chrome_options.add_argument("--window-size=1920,1080")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--start-maximized")
+    prefs = {"download.default_directory": DOWNLOAD_DIR}
+    chrome_options.add_experimental_option("prefs", prefs)
+    service = Service(ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=chrome_options)
+    logger.info("Browser setup completed successfully")
+    return driver
 
-@app.route('/api/trends')
-def get_trends():
-    keywords = [
-        'buy gold',
-        'bitcoin investment',
-        'stock market investment',
-        'real estate investment'
-    ]
+def search_and_download(keyword):
+    driver = setup_browser()
+    wait = WebDriverWait(driver, 20)
+    actions = ActionChains(driver)
     
-    results = {}
-    for keyword in keywords:
-        data = get_trend_data(keyword)
-        if data:
-            results[keyword] = data
-    
-    return jsonify(results)
+    try:
+        logger.info(f"Navigating to Google Trends for keyword: {keyword}")
+        driver.get("https://trends.google.com/trends")
+        logger.info("Page loaded successfully")
+        
+        # Wait for and handle cookie consent if present
+        try:
+            logger.info("Checking for cookie consent popup...")
+            cookie_button = wait.until(EC.presence_of_element_located((By.XPATH, "//button[contains(text(), 'Accept all')]")))
+            highlight_element(driver, cookie_button)
+            logger.info("Cookie consent button found and highlighted")
+            cookie_button.click()
+            logger.info("Cookie consent handled successfully")
+        except Exception as e:
+            logger.info("No cookie consent popup found or already accepted")
+        
+        # Wait for and find the search box
+        logger.info("Looking for search box...")
+        search_box = wait.until(EC.presence_of_element_located((By.XPATH, "//span[contains(text(), 'Explore')]")))
+        highlight_element(driver, search_box)
+        logger.info("Search box found and highlighted")
+        
+        search_box.click()
+        logger.info("Clicked on search box")
+        time.sleep(2)  # Wait for the search input to appear
+        
+        # Now find and interact with the actual search input
+        search_input = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "input[type='text']")))
+        highlight_element(driver, search_input)
+        logger.info("Search input field found and highlighted")
+        
+        search_input.clear()
+        search_input.send_keys(keyword)
+        logger.info(f"Entered search term: {keyword}")
+        search_input.send_keys(Keys.RETURN)
+        logger.info("Search submitted")
 
-if __name__ == '__main__':
-    app.run(debug=True) 
+        # Wait for results to load
+        logger.info("Waiting for search results to load...")
+        time.sleep(5)
+        
+        # Try to find and click "Explore more" if present
+        try:
+            logger.info("Looking for 'Explore more' button...")
+            explore_more = wait.until(EC.presence_of_element_located((By.XPATH, "//a[contains(text(), 'Explore more')]")))
+            highlight_element(driver, explore_more)
+            logger.info("'Explore more' button found and highlighted")
+            actions.move_to_element(explore_more).click().perform()
+            logger.info("Clicked 'Explore more' button")
+            time.sleep(5)
+        except Exception as e:
+            logger.info("No 'Explore more' button found or not needed")
+
+        # Wait for and click the download button
+        logger.info("Looking for download button...")
+        download_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[@aria-label='Download CSV']")))
+        highlight_element(driver, download_button)
+        logger.info("Download button found and highlighted")
+        
+        actions.move_to_element(download_button).click().perform()
+        logger.info("Download button clicked")
+        time.sleep(5)
+
+    except Exception as e:
+        logger.error(f"An error occurred: {str(e)}")
+        logger.error("Stack trace:", exc_info=True)
+    finally:
+        logger.info("Closing browser...")
+        driver.quit()
+        logger.info("Browser closed successfully")
+
+def find_latest_csv():
+    logger.info("Looking for the most recent CSV file...")
+    files = [f for f in os.listdir(DOWNLOAD_DIR) if f.endswith(".csv")]
+    files = sorted(files, key=lambda x: os.path.getmtime(os.path.join(DOWNLOAD_DIR, x)), reverse=True)
+    latest_file = os.path.join(DOWNLOAD_DIR, files[0]) if files else None
+    if latest_file:
+        logger.info(f"Found latest CSV file: {latest_file}")
+    else:
+        logger.warning("No CSV files found in the download directory")
+    return latest_file
+
+def parse_csv_to_data(file_path):
+    logger.info(f"Parsing CSV file: {file_path}")
+    df = pd.read_csv(file_path)
+    df = df.dropna()
+    df.columns = [col.strip() for col in df.columns]
+    logger.info(f"CSV parsed successfully. Found {len(df)} rows of data")
+    return df
+
+def generate_html(df, keyword):
+    logger.info("Generating HTML chart...")
+    labels = df[df.columns[0]].tolist()
+    data = df[df.columns[1]].tolist()
+
+    chart_html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Google Trends for {keyword}</title>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <style>
+            body {{
+                font-family: Arial, sans-serif;
+                margin: 20px;
+                background-color: #f5f5f5;
+            }}
+            .container {{
+                max-width: 1000px;
+                margin: 0 auto;
+                background-color: white;
+                padding: 20px;
+                border-radius: 10px;
+                box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            }}
+            h2 {{
+                color: #333;
+                text-align: center;
+                margin-bottom: 30px;
+            }}
+            canvas {{
+                margin: 20px auto;
+                display: block;
+            }}
+            .stats {{
+                margin-top: 20px;
+                padding: 15px;
+                background-color: #f8f9fa;
+                border-radius: 5px;
+            }}
+            .stats p {{
+                margin: 5px 0;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h2>Trend Analysis for "{keyword}"</h2>
+            <canvas id="trendChart" width="900" height="400"></canvas>
+            <div class="stats">
+                <p><strong>Data Points:</strong> {len(df)}</p>
+                <p><strong>Date Range:</strong> {labels[0]} to {labels[-1]}</p>
+                <p><strong>Average Interest:</strong> {sum(data)/len(data):.2f}</p>
+                <p><strong>Peak Interest:</strong> {max(data)}</p>
+            </div>
+        </div>
+        <script>
+            const ctx = document.getElementById('trendChart').getContext('2d');
+            const trendChart = new Chart(ctx, {{
+                type: 'line',
+                data: {{
+                    labels: {labels},
+                    datasets: [{{
+                        label: 'Search Interest',
+                        data: {data},
+                        borderWidth: 2,
+                        borderColor: '#4CAF50',
+                        backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                        fill: true,
+                        tension: 0.3
+                    }}]
+                }},
+                options: {{
+                    responsive: true,
+                    plugins: {{
+                        title: {{
+                            display: true,
+                            text: 'Google Trends Analysis'
+                        }}
+                    }},
+                    scales: {{
+                        y: {{
+                            beginAtZero: true,
+                            title: {{
+                                display: true,
+                                text: 'Interest Over Time'
+                            }}
+                        }},
+                        x: {{
+                            title: {{
+                                display: true,
+                                text: 'Date'
+                            }}
+                        }}
+                    }}
+                }}
+            }});
+        </script>
+    </body>
+    </html>
+    """
+    with open("trend_chart.html", "w") as f:
+        f.write(chart_html)
+    logger.info("HTML chart generated successfully: trend_chart.html")
+
+# Run Everything
+if __name__ == "__main__":
+    logger.info("Starting Google Trends Analysis...")
+    search_and_download(KEYWORD)
+    logger.info("Data collection completed")
+    
+    logger.info("Processing downloaded data...")
+    csv_file = find_latest_csv()
+    df = parse_csv_to_data(csv_file)
+    
+    logger.info("Generating visualization...")
+    generate_html(df, KEYWORD)
+    logger.info("Analysis completed successfully!")
